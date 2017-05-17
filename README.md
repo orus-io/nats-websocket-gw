@@ -1,7 +1,7 @@
 # NATS <-> websocket gateway
 
-A websocket gateway for NATS, compatible with
-backend for [websocket-nats](https://github.com/isobit/websocket-nats)
+A websocket gateway for NATS, usable as a backend for
+[websocket-nats](https://github.com/isobit/websocket-nats).
 
 Features:
 
@@ -9,8 +9,43 @@ Features:
 - Each NATS command is sent as a separate websocket message
 - Provides a hook to change the CONNECT phase, allowing the http server to
   handle the connection itself (for example based on a cookie of the http request)
+- Easily embeddable in a bigger http server
 
-How does it differ from other nats-websocket servers ?
+## Basic usage
+
+Fetch the source:
+
+```bash
+go get -u github.com/orus-io/nats-websocket-gw
+```
+
+Install the default binary
+
+```bash
+go install github.com/orus-io/nats-websocket-gw/cmd/nats-websocket-gw
+```
+
+and/or integrate it in your http server:
+
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/orus-io/nats-websocket-gw"
+)
+
+func main() {
+	gateway := gw.NewGateway(gw.Settings{
+		NatsAddr: "localhost:4222",
+	})
+	http.HandleFunc("/nats", gateway.Handler)
+	http.ListenAndServe("0.0.0.0:8910", nil)
+}
+```
+
+## How does it differ from other nats-websocket servers ?
 
 - [Rest to NATS Proxy](https://github.com/sohlich/nats-proxy) provides a websocket
   based implementation. The approach is pretty different though, as the websockets

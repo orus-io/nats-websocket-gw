@@ -22,6 +22,7 @@ type Settings struct {
 	TlsConfig      *tls.Config
 	ConnectHandler ConnectHandler
 	ErrorHandler   ErrorHandler
+	WSUpgrader     *websocket.Upgrader
 }
 
 type Gateway struct {
@@ -30,7 +31,7 @@ type Gateway struct {
 	handleConnect ConnectHandler
 }
 
-var upgrader = websocket.Upgrader{
+var defaultUpgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
@@ -130,6 +131,10 @@ func (gw *Gateway) wsToNatsWorker(nats net.Conn, ws *websocket.Conn, doneCh chan
 }
 
 func (gw *Gateway) Handler(w http.ResponseWriter, r *http.Request) {
+	upgrader := defaultUpgrader
+	if gw.settings.WSUpgrader != nil {
+		upgrader = *gw.settings.WSUpgrader
+	}
 	wsConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		gw.onError(err)

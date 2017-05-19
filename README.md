@@ -1,6 +1,7 @@
 # NATS <-> websocket gateway
 
 A websocket gateway for NATS, usable as a backend for
+[elm-nats](https://github.com/orus-io/elm-nats) and
 [websocket-nats](https://github.com/isobit/websocket-nats).
 
 Features:

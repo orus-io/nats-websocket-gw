@@ -192,7 +192,6 @@ func (gw *Gateway) initNatsConnectionForWSConn(wsConn *websocket.Conn) (*NatsCon
 	// optionnaly initialize the TLS layer
 	// TODO check if the server requires TLS, which overrides the 'enableTls' setting
 	if gw.settings.EnableTls {
-		fmt.Println("HERE I AM")
 		tlsConfig := gw.settings.TlsConfig
 		if tlsConfig == nil {
 			tlsConfig = &tls.Config{

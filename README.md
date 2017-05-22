@@ -20,10 +20,11 @@ Fetch the source:
 go get -u github.com/orus-io/nats-websocket-gw
 ```
 
-Install the default binary
+Install and run the default binary
 
 ```bash
 go install github.com/orus-io/nats-websocket-gw/cmd/nats-websocket-gw
+nats-websocket-gw --no-origin-check
 ```
 
 and/or integrate it in your http server:

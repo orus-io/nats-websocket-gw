@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Nats websocket gw example</title>
+        <script type="text/javascript" src="https://cdn.rawgit.com/isobit/websocket-nats/master/dist/websocket-nats.js"></script>
+    </head>
+    <body>
+        <script type="text/javascript">
+            var nats = NATS.connect('ws://localhost:8910/nats');
+
+            // Simple Subscriber
+            nats.subscribe('foo', function(msg) {
+                console.log('Received a message: ' + msg);
+            });
+
+            // Simple Publisher
+            nats.publish('foo', 'Hello World!');
+
+        </script>
+    </body>
+</html>

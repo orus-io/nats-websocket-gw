@@ -23,6 +23,7 @@ type Settings struct {
 	ConnectHandler ConnectHandler
 	ErrorHandler   ErrorHandler
 	WSUpgrader     *websocket.Upgrader
+	Trace          bool
 }
 
 type Gateway struct {
@@ -42,31 +43,35 @@ type NatsConn struct {
 	ServerInfo NatsServerInfo
 }
 
-func defaultConnectHandler(natsConn *NatsConn, wsConn *websocket.Conn) error {
+func (gw *Gateway) defaultConnectHandler(natsConn *NatsConn, wsConn *websocket.Conn) error {
 	// Default behavior is to let the client on the other side do the CONNECT
 	// after having forwarded the 'INFO' command
 	infoCmd := append([]byte("INFO "), []byte(natsConn.ServerInfo)...)
 	infoCmd = append(infoCmd, byte('\r'), byte('\n'))
+	if gw.settings.Trace {
+		fmt.Println("[TRACE] <--", string(infoCmd))
+	}
 	if err := wsConn.WriteMessage(websocket.TextMessage, infoCmd); err != nil {
 		return err
 	}
-	_, msg, err := wsConn.ReadMessage()
-	if err != nil {
-		return err
-	}
-	n, err := natsConn.Conn.Write(msg)
-	if err != nil {
-		return err
-	}
-	if n != len(msg) {
-		return fmt.Errorf("Not all bytes were sent to nats")
-	}
-	// TODO if verbose protocol is on, consume the 'OK' from the server and detect errors
 	return nil
 }
 
 func defaultErrorHandler(err error) {
 	fmt.Println("[ERROR]", err)
+}
+
+func copyAndTrace(prefix string, dst io.Writer, src io.Reader, buf []byte) (int64, error) {
+	read, err := src.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	fmt.Println("[TRACE]", prefix, string(buf[:read]))
+	written, err := dst.Write(buf[:read])
+	if written != read {
+		return int64(written), io.ErrShortWrite
+	}
+	return int64(written), err
 }
 
 func NewGateway(settings Settings) *Gateway {
@@ -88,7 +93,7 @@ func (gw *Gateway) setErrorHandler(handler ErrorHandler) {
 
 func (gw *Gateway) setConnectHandler(handler ConnectHandler) {
 	if handler == nil {
-		gw.handleConnect = defaultConnectHandler
+		gw.handleConnect = gw.defaultConnectHandler
 	} else {
 		gw.handleConnect = handler
 	}
@@ -105,6 +110,9 @@ func (gw *Gateway) natsToWsWorker(ws *websocket.Conn, src CommandsReader, doneCh
 			gw.onError(err)
 			return
 		}
+		if gw.settings.Trace {
+			fmt.Println("[TRACE] <--", string(cmd))
+		}
 		if err := ws.WriteMessage(websocket.TextMessage, cmd); err != nil {
 			gw.onError(err)
 			return
@@ -116,13 +124,21 @@ func (gw *Gateway) wsToNatsWorker(nats net.Conn, ws *websocket.Conn, doneCh chan
 	defer func() {
 		doneCh <- true
 	}()
+	var buf []byte
+	if gw.settings.Trace {
+		buf = make([]byte, 1024*1024)
+	}
 	for {
 		_, src, err := ws.NextReader()
 		if err != nil {
 			gw.onError(err)
 			return
 		}
-		_, err = io.Copy(nats, src)
+		if gw.settings.Trace {
+			_, err = copyAndTrace("-->", nats, src, buf)
+		} else {
+			_, err = io.Copy(nats, src)
+		}
 		if err != nil {
 			gw.onError(err)
 			return

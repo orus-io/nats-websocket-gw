@@ -10,7 +10,7 @@ import (
 )
 
 func usage() {
-	fmt.Printf(`Usage: %s [ --help ] [ --no-origin-check ]
+	fmt.Printf(`Usage: %s [ --help ] [ --no-origin-check ] [ --trace ]
 `, os.Args[0])
 }
 
@@ -19,22 +19,21 @@ func main() {
 		NatsAddr: "localhost:4222",
 	}
 
-	if len(os.Args) > 2 {
-		fmt.Print("Too many arguments\n\n")
-		usage()
-		os.Exit(1)
-	} else if len(os.Args) == 2 {
-		if os.Args[1] == "--help" {
+	for _, arg := range os.Args[1:] {
+		switch arg {
+		case "--help":
 			usage()
 			return
-		} else if os.Args[1] == "--no-origin-check" {
+		case "--no-origin-check":
 			settings.WSUpgrader = &websocket.Upgrader{
 				ReadBufferSize:  1024,
 				WriteBufferSize: 1024,
 				CheckOrigin:     func(r *http.Request) bool { return true },
 			}
-		} else {
-			fmt.Printf("Invalid args: %s\n\n", os.Args[1])
+		case "--trace":
+			settings.Trace = true
+		default:
+			fmt.Printf("Invalid args: %s\n\n", arg)
 			usage()
 			return
 		}

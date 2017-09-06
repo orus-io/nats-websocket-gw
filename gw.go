@@ -163,7 +163,7 @@ func readInfo(cmd []byte) (NatsServerInfo, error) {
 	if !bytes.Equal(cmd[:5], []byte("INFO ")) {
 		return "", fmt.Errorf("Invalid 'INFO' command: %s", string(cmd))
 	}
-	return NatsServerInfo(cmd[5:]), nil
+	return NatsServerInfo(cmd[5 : len(cmd)-2]), nil
 }
 
 // initNatsConnectionForRequest open a connection to the nats server, consume the

@@ -11,6 +11,7 @@ Features:
 - Provides a hook to change the CONNECT phase, allowing the http server to
   handle the connection itself (for example based on a cookie of the http request)
 - Easily embeddable in a bigger http server
+- Supports both text (default) and binary (by adding '?mode=binary' to the url) messages
 
 ## Basic usage
 

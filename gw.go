@@ -99,7 +99,7 @@ func (gw *Gateway) setConnectHandler(handler ConnectHandler) {
 	}
 }
 
-func (gw *Gateway) natsToWsWorker(ws *websocket.Conn, src CommandsReader, doneCh chan<- bool) {
+func (gw *Gateway) natsToWsWorker(messageType int, ws *websocket.Conn, src CommandsReader, doneCh chan<- bool) {
 	defer func() {
 		doneCh <- true
 	}()
@@ -113,14 +113,14 @@ func (gw *Gateway) natsToWsWorker(ws *websocket.Conn, src CommandsReader, doneCh
 		if gw.settings.Trace {
 			fmt.Println("[TRACE] <--", string(cmd))
 		}
-		if err := ws.WriteMessage(websocket.TextMessage, cmd); err != nil {
+		if err := ws.WriteMessage(messageType, cmd); err != nil {
 			gw.onError(err)
 			return
 		}
 	}
 }
 
-func (gw *Gateway) wsToNatsWorker(nats net.Conn, ws *websocket.Conn, doneCh chan<- bool) {
+func (gw *Gateway) wsToNatsWorker(messageType int, nats net.Conn, ws *websocket.Conn, doneCh chan<- bool) {
 	defer func() {
 		doneCh <- true
 	}()
@@ -164,8 +164,15 @@ func (gw *Gateway) Handler(w http.ResponseWriter, r *http.Request) {
 
 	doneCh := make(chan bool)
 
-	go gw.natsToWsWorker(wsConn, natsConn.CmdReader, doneCh)
-	go gw.wsToNatsWorker(natsConn.Conn, wsConn, doneCh)
+	var mode = websocket.TextMessage
+	if value, ok := r.URL.Query()["mode"]; ok {
+		if len(value) == 1 && value[0] == "binary" {
+			mode = websocket.BinaryMessage
+		}
+	}
+
+	go gw.natsToWsWorker(mode, wsConn, natsConn.CmdReader, doneCh)
+	go gw.wsToNatsWorker(mode, natsConn.Conn, wsConn, doneCh)
 
 	<-doneCh
 

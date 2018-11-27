@@ -11,11 +11,17 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// ErrorHandler is used in Settings for handling errors
 type ErrorHandler func(error)
+
+// ConnectHandler is used in Settings for handling the initial CONNECT of
+// a nats connection
 type ConnectHandler func(*NatsConn, *websocket.Conn) error
 
+// NatsServerInfo is the information returned by the INFO nats message
 type NatsServerInfo string
 
+// Settings configures a Gateway
 type Settings struct {
 	NatsAddr       string
 	EnableTls      bool
@@ -26,6 +32,7 @@ type Settings struct {
 	Trace          bool
 }
 
+// Gateway is a HTTP handler that acts as a websocket gateway to a NATS server
 type Gateway struct {
 	settings      Settings
 	onError       ErrorHandler
@@ -37,6 +44,7 @@ var defaultUpgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+// NatsConn holds a NATS TCP connection
 type NatsConn struct {
 	Conn       net.Conn
 	CmdReader  CommandsReader
@@ -74,6 +82,7 @@ func copyAndTrace(prefix string, dst io.Writer, src io.Reader, buf []byte) (int6
 	return int64(written), err
 }
 
+// NewGateway instanciates a Gateway
 func NewGateway(settings Settings) *Gateway {
 	gw := Gateway{
 		settings: settings,
@@ -146,6 +155,7 @@ func (gw *Gateway) wsToNatsWorker(messageType int, nats net.Conn, ws *websocket.
 	}
 }
 
+// Handler is a HTTP handler function
 func (gw *Gateway) Handler(w http.ResponseWriter, r *http.Request) {
 	upgrader := defaultUpgrader
 	if gw.settings.WSUpgrader != nil {

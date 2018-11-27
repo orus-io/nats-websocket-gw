@@ -8,11 +8,13 @@ import (
 	"strconv"
 )
 
+// CommandsReader parses a NATS connection input stream into commands
 type CommandsReader struct {
 	io.Reader
 	br *bufio.Reader
 }
 
+// NewCommandsReader creates a CommandsReader
 func NewCommandsReader(src io.Reader) CommandsReader {
 	return CommandsReader{
 		Reader: src,

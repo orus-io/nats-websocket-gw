@@ -24,8 +24,8 @@ type NatsServerInfo string
 // Settings configures a Gateway
 type Settings struct {
 	NatsAddr       string
-	EnableTls      bool
-	TlsConfig      *tls.Config
+	EnableTLS      bool
+	TLSConfig      *tls.Config
 	ConnectHandler ConnectHandler
 	ErrorHandler   ErrorHandler
 	WSUpgrader     *websocket.Upgrader
@@ -224,8 +224,8 @@ func (gw *Gateway) initNatsConnectionForWSConn(wsConn *websocket.Conn) (*NatsCon
 
 	// optionnaly initialize the TLS layer
 	// TODO check if the server requires TLS, which overrides the 'enableTls' setting
-	if gw.settings.EnableTls {
-		tlsConfig := gw.settings.TlsConfig
+	if gw.settings.EnableTLS {
+		tlsConfig := gw.settings.TLSConfig
 		if tlsConfig == nil {
 			tlsConfig = &tls.Config{
 				InsecureSkipVerify: true,

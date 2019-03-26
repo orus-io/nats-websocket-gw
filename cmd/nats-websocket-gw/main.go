@@ -6,40 +6,58 @@ import (
 	"os"
 
 	"github.com/gorilla/websocket"
-	"github.com/orus-io/nats-websocket-gw"
+	gw "github.com/orus-io/nats-websocket-gw"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-func usage() {
-	fmt.Printf(`Usage: %s [ --help ] [ --no-origin-check ] [ --trace ]
-`, os.Args[0])
+var rootCmd = cobra.Command{
+	Run: rootCmdRun,
 }
 
-func main() {
+func init() {
+	flags := rootCmd.Flags()
+
+	flags.Int("port", 8910, "Port to run http server on")
+	flags.String("host", "localhost", "host/IP to run http server on")
+	flags.String("nats", "localhost:4222", "nats server address:port")
+	flags.Bool("no-origin-check", false, "Disable http origin-check")
+	flags.Bool("trace", false, "Enable trace logs")
+
+	viper.BindPFlag("port", flags.Lookup("port"))
+	viper.BindPFlag("host", flags.Lookup("host"))
+	viper.BindPFlag("nats", flags.Lookup("nats"))
+	viper.BindPFlag("no-origin-check", flags.Lookup("no-origin-check"))
+	viper.BindPFlag("trace", flags.Lookup("trace"))
+}
+
+func rootCmdRun(cmd *cobra.Command, args []string) {
+
 	settings := gw.Settings{
-		NatsAddr: "localhost:4222",
+		NatsAddr: viper.GetString("nats"),
 	}
 
-	for _, arg := range os.Args[1:] {
-		switch arg {
-		case "--help":
-			usage()
-			return
-		case "--no-origin-check":
-			settings.WSUpgrader = &websocket.Upgrader{
-				ReadBufferSize:  1024,
-				WriteBufferSize: 1024,
-				CheckOrigin:     func(r *http.Request) bool { return true },
-			}
-		case "--trace":
-			settings.Trace = true
-		default:
-			fmt.Printf("Invalid args: %s\n\n", arg)
-			usage()
-			return
+	if viper.GetBool("no-origin-check") {
+		settings.WSUpgrader = &websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+			CheckOrigin:     func(r *http.Request) bool { return true },
 		}
 	}
+	if viper.GetBool("trace") {
+		settings.Trace = true
+	}
+
+	listenOn := viper.GetString("host") + ":" + viper.GetString("port")
 
 	gateway := gw.NewGateway(settings)
 	http.HandleFunc("/nats", gateway.Handler)
-	http.ListenAndServe("0.0.0.0:8910", nil)
+	http.ListenAndServe(listenOn, nil)
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }

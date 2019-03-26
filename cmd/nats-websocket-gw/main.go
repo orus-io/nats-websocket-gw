@@ -20,12 +20,14 @@ func init() {
 
 	flags.Int("port", 8910, "Port to run http server on")
 	flags.String("host", "localhost", "host/IP to run http server on")
+	flags.String("path", "/nats", "webpath of the websocket")
 	flags.String("nats", "localhost:4222", "nats server address:port")
-	flags.Bool("no-origin-check", false, "Disable http origin-check")
+	flags.Bool("no-origin-check", false, "Disable websocket origin check")
 	flags.Bool("trace", false, "Enable trace logs")
 
 	viper.BindPFlag("port", flags.Lookup("port"))
 	viper.BindPFlag("host", flags.Lookup("host"))
+	viper.BindPFlag("path", flags.Lookup("path"))
 	viper.BindPFlag("nats", flags.Lookup("nats"))
 	viper.BindPFlag("no-origin-check", flags.Lookup("no-origin-check"))
 	viper.BindPFlag("trace", flags.Lookup("trace"))
@@ -51,7 +53,7 @@ func rootCmdRun(cmd *cobra.Command, args []string) {
 	listenOn := viper.GetString("host") + ":" + viper.GetString("port")
 
 	gateway := gw.NewGateway(settings)
-	http.HandleFunc("/nats", gateway.Handler)
+	http.HandleFunc(viper.GetString("path"), gateway.Handler)
 	http.ListenAndServe(listenOn, nil)
 }
 

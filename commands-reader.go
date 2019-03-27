@@ -29,27 +29,34 @@ func (cr CommandsReader) nextCommand() ([]byte, error) {
 		return nil, err
 	}
 
-	if bytes.Equal(line[0:3], []byte("MSG")) {
+	if len(line) == 0 {
+		return nil, fmt.Errorf("Unexpected empty line")
+	}
+	if len(line) < 3 {
+		return nil, fmt.Errorf("Invalid command: '%s'", line)
+	}
+	op := line[0:3]
+	if bytes.Equal(op, []byte("MSG")) || bytes.Equal(op, []byte("PUB")) {
 		msg = line[:]
 		splitted := bytes.Split(line, []byte(" "))
 		sizeStr := splitted[len(splitted)-1]
 		sizeStr = sizeStr[:len(sizeStr)-2]
 		size, err := strconv.Atoi(string(sizeStr))
 		if err != nil {
-			return nil, fmt.Errorf("Error reading MSG size: %s", err)
+			return nil, fmt.Errorf("Error reading %s size: %s", op, err)
 		}
 		// the '-2' is to account for the trailing \r\n which is after the payload
 		for size > -2 {
 			chunk, err := cr.br.ReadBytes('\n')
 			if err != nil {
-				return nil, fmt.Errorf("Error reading MSG payload: %s", err)
+				return nil, fmt.Errorf("Error reading %s payload: %s", op, err)
 			}
 			size -= len(chunk)
 			msg = append(msg, chunk...)
 		}
 		if size != -2 {
 			return nil, fmt.Errorf(
-				"Error reading MSG payload. Got %d extra bytes", -size-2)
+				"Error reading %s payload. Got %d extra bytes", op, -size-2)
 		}
 	} else {
 		msg = line

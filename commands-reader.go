@@ -29,16 +29,23 @@ func (cr CommandsReader) NextCommand() ([]byte, error) {
 
 func (cr CommandsReader) nextCommand() ([]byte, error) {
 	var msg []byte
+
 	line, err := cr.br.ReadBytes('\n')
 	if err != nil {
 		return nil, err
+	}
+	for bytes.Equal(line, []byte("\r\n")) {
+		line, err = cr.br.ReadBytes('\n')
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(line) == 0 {
 		return nil, fmt.Errorf("Unexpected empty line")
 	}
 	if len(line) < 3 {
-		return nil, fmt.Errorf("Invalid command: '%s'", line)
+		return nil, fmt.Errorf("Invalid command: %v", line)
 	}
 	op := line[0:3]
 	if bytes.Equal(op, []byte("MSG")) || bytes.Equal(op, []byte("PUB")) {

@@ -22,6 +22,11 @@ func NewCommandsReader(src io.Reader) CommandsReader {
 	}
 }
 
+// NextCommand returns the next command in the input stream
+func (cr CommandsReader) NextCommand() ([]byte, error) {
+	return cr.nextCommand()
+}
+
 func (cr CommandsReader) nextCommand() ([]byte, error) {
 	var msg []byte
 	line, err := cr.br.ReadBytes('\n')

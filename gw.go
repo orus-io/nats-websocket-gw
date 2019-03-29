@@ -16,7 +16,7 @@ type ErrorHandler func(error)
 
 // ConnectHandler is used in Settings for handling the initial CONNECT of
 // a nats connection
-type ConnectHandler func(*NatsConn, *websocket.Conn) error
+type ConnectHandler func(*NatsConn, *http.Request, *websocket.Conn) error
 
 // NatsServerInfo is the information returned by the INFO nats message
 type NatsServerInfo string
@@ -51,7 +51,7 @@ type NatsConn struct {
 	ServerInfo NatsServerInfo
 }
 
-func (gw *Gateway) defaultConnectHandler(natsConn *NatsConn, wsConn *websocket.Conn) error {
+func (gw *Gateway) defaultConnectHandler(natsConn *NatsConn, r *http.Request, wsConn *websocket.Conn) error {
 	// Default behavior is to let the client on the other side do the CONNECT
 	// after having forwarded the 'INFO' command
 	infoCmd := append([]byte("INFO "), []byte(natsConn.ServerInfo)...)
@@ -166,7 +166,7 @@ func (gw *Gateway) Handler(w http.ResponseWriter, r *http.Request) {
 		gw.onError(err)
 		return
 	}
-	natsConn, err := gw.initNatsConnectionForWSConn(wsConn)
+	natsConn, err := gw.initNatsConnectionForWSConn(r, wsConn)
 	if err != nil {
 		gw.onError(err)
 		return
@@ -201,7 +201,7 @@ func readInfo(cmd []byte) (NatsServerInfo, error) {
 
 // initNatsConnectionForRequest open a connection to the nats server, consume the
 // INFO message if needed, and finally handle the CONNECT
-func (gw *Gateway) initNatsConnectionForWSConn(wsConn *websocket.Conn) (*NatsConn, error) {
+func (gw *Gateway) initNatsConnectionForWSConn(r *http.Request, wsConn *websocket.Conn) (*NatsConn, error) {
 	conn, err := net.Dial("tcp", gw.settings.NatsAddr)
 	if err != nil {
 		return nil, err
@@ -237,7 +237,7 @@ func (gw *Gateway) initNatsConnectionForWSConn(wsConn *websocket.Conn) (*NatsCon
 		natsConn.CmdReader = NewCommandsReader(tlsConn)
 	}
 
-	if err := gw.handleConnect(&natsConn, wsConn); err != nil {
+	if err := gw.handleConnect(&natsConn, r, wsConn); err != nil {
 		return nil, err
 	}
 
